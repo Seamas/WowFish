@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Imaging;
 using AutoScript;
 using KenerlImport;
 using LogDll;
@@ -155,7 +156,7 @@ public class FishScript : IAutoScript
         // 截图窗口区域的图片
         point = FindBobberPoint(rect);
         // 如果点数 >= 300， 则认为鱼漂存在
-        return point.Item3 >= 300;
+        return point.Item3 >= FishConfig.BobberPoints;
     }
 
 
@@ -163,27 +164,27 @@ public class FishScript : IAutoScript
     /// 通过多次检测位置变化
     /// </summary>
     /// <returns></returns>
-    private async Task<bool> DetectBobberBite(RECT rect, (int, int, int) lastPos, long utc)
+    private Task<bool> DetectBobberBite(RECT rect, (int, int, int) lastPos, long utc)
     {
-        await Task.Yield();
         // 等待鱼上钩，如果没有停止或者超时，一直继续
         while (_isRunning && DateTime.Now.ToFileTimeUtc() < utc )
         {
             var current = FindBobberPoint(rect);
-            if (current.Count <= 100)
+            if (current.Count < FishConfig.BobberPoints)
             {
                 LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确");
-                return true;
+                return Task.FromResult(true);;
             }
             
             var distance = Math.Pow(current.X - lastPos.Item1, 2) + Math.Pow(current.Y - lastPos.Item2, 2);
-            if (distance >= 1000)
+            LogHelper.Info($"鱼漂运动检测差值 {distance}");
+            if (distance >= FishConfig.Distance)
             {
-                return true;
+                return Task.FromResult(true);;
             }
         }
         
-        return false;
+        return Task.FromResult(false);
     }
 
     private (int X, int Y, int Count) FindBobberPoint(RECT rect)
@@ -197,17 +198,56 @@ public class FishScript : IAutoScript
         // bitmap = screenshot.Clone(new Rectangle(x, y, x * 2, y * 2), screenshot.PixelFormat);
         // bitmap.Save($"screenshot/cut{DateTime.Now:yyyyMMdd_HHmmss}.png");
         // bitmap.Dispose();
+
+        var width = x + x;
+        var height = y + y;
         
         // 符合鱼漂颜色的点
-        var bobberColoredPoints = FilterImage(screenshot, x, y, x, y);
+        LogHelper.Info("开始筛选符合颜色的点....");
+        var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Threshold);
+        LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
         if (bobberColoredPoints.Count == 0)
         {
             return (0, 0, 0);
         }
+        
+        DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
+        
+        
         // 经过中心化筛选出的鱼漂点
         var multipleIteration = MultipleIteration(bobberColoredPoints);
         // 鱼漂中心点
         return CenterOfBobber(multipleIteration);
+    }
+
+    private void DebugScreenShot(Bitmap screenshot, List<(int, int)> bobberColoredPoints, int x, int width, int y, int height)
+    {
+        if (FishConfig.Debug)
+        {
+            screenshot.Save("screenshotBefore.png", ImageFormat.Png);
+            foreach (var (w, h) in bobberColoredPoints)
+            {
+                screenshot.SetPixel(w, h, Color.Red);
+            }
+        
+            for (var i = x; i < x + width; i++)
+            {
+                var y1 = y;
+                var y2 = y + height;
+                screenshot.SetPixel(i, y1, Color.Red);
+                screenshot.SetPixel(i, y2, Color.Red);
+            }
+        
+            for (var j = y; j < y + height; j++)
+            {
+                var x1 = x;
+                var x2 = x + width;
+                screenshot.SetPixel(x1, j, Color.Red);
+                screenshot.SetPixel(x2, j, Color.Red);
+            }
+        
+            screenshot.Save("screenshotAfter.png", ImageFormat.Png);
+        }
     }
 
 
