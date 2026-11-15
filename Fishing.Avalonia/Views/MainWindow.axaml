@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Fishing.Avalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="Fishing.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="魔兽世界自动钓鱼">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+        <Border Grid.Row="0" Padding="12" CornerRadius="6" BorderBrush="#ddd" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <TextBlock Text="钓鱼设置" FontSize="18" FontWeight="Bold"/>
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Content="调试模式" IsChecked="{Binding Debug}" Margin="0,0,20,0"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,20,0">
+                        <TextBlock Text="颜色阈值" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Threshold}" Width="80"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,20,0">
+                        <TextBlock Text="上钩跳动" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Distance}" Width="80"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="颜色点数" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding BobberPoints}" Width="80"/>
+                    </StackPanel>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,12">
+            <Button Content="开始钓鱼 (F11)" Command="{Binding StartCommand}" IsEnabled="{Binding !IsRunning}" Padding="20,8"/>
+            <Button Content="停止钓鱼 (F12)" Command="{Binding StopCommand}" IsEnabled="{Binding IsRunning}" Padding="20,8"/>
+            <TextBlock Text="{Binding IsRunning, StringFormat='状态: {0}'}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="8" CornerRadius="6" BorderBrush="#ddd" BorderThickness="1">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Text="运行日志" FontWeight="Bold" Margin="0,0,0,8"/>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" FontFamily="Consolas" FontSize="12"/>
+            </Grid>
+        </Border>
+    </Grid>
+
+</Window>
