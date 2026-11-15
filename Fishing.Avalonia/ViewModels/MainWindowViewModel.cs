@@ -1,7 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -31,6 +33,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isRunning;
 
+    [ObservableProperty]
+    private Bitmap? _videoFrame;
+
+    [ObservableProperty]
+    private string _bobberStatus = "未检测到鱼漂";
+
     public ObservableCollection<string> Logs { get; } = new();
 
     public MainWindowViewModel()
@@ -40,7 +48,22 @@ public partial class MainWindowViewModel : ViewModelBase
         _distance = _config.Distance;
         _bobberPoints = _config.BobberPoints;
 
+        _fishScript.VideoFrameReady += OnVideoFrameReady;
         LogHelper.LogReceived += OnLogReceived;
+    }
+
+    private void OnVideoFrameReady(byte[] imageData, (int X, int Y, int Count) center)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var oldFrame = VideoFrame;
+            VideoFrame = new Bitmap(new MemoryStream(imageData));
+            oldFrame?.Dispose();
+
+            BobberStatus = center.Count >= _config.BobberPoints
+                ? $"鱼漂位置: ({center.X}, {center.Y})，点数: {center.Count}"
+                : $"未检测到鱼漂，点数: {center.Count}";
+        });
     }
 
     private void OnLogReceived(string message)

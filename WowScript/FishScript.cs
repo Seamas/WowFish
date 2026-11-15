@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing.Imaging;
+using System.IO;
 using AutoScript;
 using KenerlImport;
 using LogDll;
@@ -26,6 +27,11 @@ public class FishScript : IAutoScript
 
 
     public object ScriptData => new object();
+
+    /// <summary>
+    /// 视频帧就绪事件，参数为 PNG 图像字节数组与鱼漂中心点信息
+    /// </summary>
+    public event Action<byte[], (int X, int Y, int Count)>? VideoFrameReady;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -164,7 +170,7 @@ public class FishScript : IAutoScript
     /// 通过多次检测位置变化
     /// </summary>
     /// <returns></returns>
-    private Task<bool> DetectBobberBite(RECT rect, (int, int, int) lastPos, long utc)
+    private async Task<bool> DetectBobberBite(RECT rect, (int, int, int) lastPos, long utc)
     {
         // 等待鱼上钩，如果没有停止或者超时，一直继续
         while (_isRunning && DateTime.Now.ToFileTimeUtc() < utc )
@@ -173,51 +179,51 @@ public class FishScript : IAutoScript
             if (current.Count < FishConfig.Instance.BobberPoints)
             {
                 LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确");
-                return Task.FromResult(true);;
+                return true;
             }
-            
+
             var distance = Math.Pow(current.X - lastPos.Item1, 2) + Math.Pow(current.Y - lastPos.Item2, 2);
             LogHelper.Info($"鱼漂运动检测差值 {distance}");
             if (distance >= FishConfig.Instance.Distance)
             {
-                return Task.FromResult(true);;
+                return true;
             }
+
+            // 控制检测与视频帧率，避免 CPU 占用过高
+            await Task.Delay(50);
         }
-        
-        return Task.FromResult(false);
+
+        return false;
     }
 
     private (int X, int Y, int Count) FindBobberPoint(RECT rect)
     {
         using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo.Scale);
-        
-        
+
         var x = screenshot.Width / 4;
         var y = screenshot.Height / 5;
-        // var bitmap = new Bitmap(x, y);
-        // bitmap = screenshot.Clone(new Rectangle(x, y, x * 2, y * 2), screenshot.PixelFormat);
-        // bitmap.Save($"screenshot/cut{DateTime.Now:yyyyMMdd_HHmmss}.png");
-        // bitmap.Dispose();
-
         var width = x + x;
         var height = y + y;
-        
+
         // 符合鱼漂颜色的点
         LogHelper.Info("开始筛选符合颜色的点....");
         var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
         LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
-        if (bobberColoredPoints.Count == 0)
-        {
-            return (0, 0, 0);
-        }
-        
-        DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
-        
-        
+
         // 经过中心化筛选出的鱼漂点
-        var multipleIteration = MultipleIteration(bobberColoredPoints);
+        var multipleIteration = bobberColoredPoints.Count > 0
+            ? MultipleIteration(bobberColoredPoints)
+            : new List<(int, int)>();
+
         // 鱼漂中心点
-        return CenterOfBobber(multipleIteration);
+        var center = multipleIteration.Count > 0
+            ? CenterOfBobber(multipleIteration)
+            : (0, 0, 0);
+
+        DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
+        PublishVideoFrame(screenshot, bobberColoredPoints, center, x, y, width, height);
+
+        return center;
     }
 
     private void DebugScreenShot(Bitmap screenshot, List<(int, int)> bobberColoredPoints, int x, int width, int y, int height)
@@ -250,6 +256,35 @@ public class FishScript : IAutoScript
         }
     }
 
+
+    private void PublishVideoFrame(Bitmap screenshot, List<(int, int)> coloredPoints, (int X, int Y, int Count) center, int x, int y, int width, int height)
+    {
+        if (VideoFrameReady == null) return;
+
+        using var annotated = new Bitmap(screenshot);
+        using var g = Graphics.FromImage(annotated);
+
+        // 绘制检测区域边框
+        g.DrawRectangle(Pens.Yellow, x, y, width, height);
+
+        // 标注筛选出的颜色点
+        foreach (var (px, py) in coloredPoints)
+        {
+            annotated.SetPixel(px, py, Color.Red);
+        }
+
+        // 标注鱼漂中心点
+        if (center.Count > 0)
+        {
+            g.DrawEllipse(Pens.Lime, center.X - 10, center.Y - 10, 20, 20);
+            g.DrawLine(Pens.Lime, center.X - 15, center.Y, center.X + 15, center.Y);
+            g.DrawLine(Pens.Lime, center.X, center.Y - 15, center.X, center.Y + 15);
+        }
+
+        using var ms = new MemoryStream();
+        annotated.Save(ms, ImageFormat.Png);
+        VideoFrameReady.Invoke(ms.ToArray(), center);
+    }
 
     /// <summary>
     /// 收杆操作
