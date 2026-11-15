@@ -11,19 +11,19 @@ public partial class MainForm : Form
 
     private void MainForm_Load(object sender, EventArgs e)
     {
-        chkboxDebug.Checked = FishConfig.Debug;
-        txbDistance.Text = FishConfig.Distance.ToString();
-        txbThreshold.Text = FishConfig.Threshold.ToString();
-        txbBobberpoints.Text = FishConfig.BobberPoints.ToString();
+        chkboxDebug.Checked = FishConfig.Instance.Debug;
+        txbDistance.Text = FishConfig.Instance.Distance.ToString();
+        txbThreshold.Text = FishConfig.Instance.Threshold.ToString();
+        txbBobberpoints.Text = FishConfig.Instance.BobberPoints.ToString();
     }
 
     private void btnApply_Click(object sender, EventArgs e)
     {
-        FishConfig.Debug = chkboxDebug.Checked;
+        FishConfig.Instance.Debug = chkboxDebug.Checked;
 
         if (double.TryParse(txbDistance.Text, out var distance))
         {
-            FishConfig.Distance = distance;
+            FishConfig.Instance.Distance = distance;
         }
         else
         {
@@ -32,7 +32,7 @@ public partial class MainForm : Form
 
         if (double.TryParse(txbThreshold.Text, out var threshold))
         {
-            FishConfig.Threshold = threshold;
+            FishConfig.Instance.Threshold = threshold;
         }
         else
         {
@@ -41,7 +41,7 @@ public partial class MainForm : Form
 
         if (int.TryParse(txbBobberpoints.Text, out var bobberpoints))
         {
-            FishConfig.BobberPoints = bobberpoints;
+            FishConfig.Instance.BobberPoints = bobberpoints;
         }
         else
         {

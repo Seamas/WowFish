@@ -13,19 +13,20 @@ namespace Fishing.Avalonia.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly FishScript _fishScript = new();
+    private readonly FishConfig _config = FishConfig.Instance;
     private CancellationTokenSource? _cancellationTokenSource;
 
     [ObservableProperty]
-    private bool _debug = FishConfig.Debug;
+    private bool _debug;
 
     [ObservableProperty]
-    private double _threshold = FishConfig.Threshold;
+    private double _threshold;
 
     [ObservableProperty]
-    private double _distance = FishConfig.Distance;
+    private double _distance;
 
     [ObservableProperty]
-    private int _bobberPoints = FishConfig.BobberPoints;
+    private int _bobberPoints;
 
     [ObservableProperty]
     private bool _isRunning;
@@ -34,6 +35,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
+        _debug = _config.Debug;
+        _threshold = _config.Threshold;
+        _distance = _config.Distance;
+        _bobberPoints = _config.BobberPoints;
+
         LogHelper.LogReceived += OnLogReceived;
     }
 
@@ -49,10 +55,29 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-    partial void OnDebugChanged(bool value) => FishConfig.Debug = value;
-    partial void OnThresholdChanged(double value) => FishConfig.Threshold = value;
-    partial void OnDistanceChanged(double value) => FishConfig.Distance = value;
-    partial void OnBobberPointsChanged(int value) => FishConfig.BobberPoints = value;
+    partial void OnDebugChanged(bool value)
+    {
+        _config.Debug = value;
+        _config.Save();
+    }
+
+    partial void OnThresholdChanged(double value)
+    {
+        _config.Threshold = value;
+        _config.Save();
+    }
+
+    partial void OnDistanceChanged(double value)
+    {
+        _config.Distance = value;
+        _config.Save();
+    }
+
+    partial void OnBobberPointsChanged(int value)
+    {
+        _config.BobberPoints = value;
+        _config.Save();
+    }
 
     [RelayCommand]
     private async Task StartAsync()

@@ -156,7 +156,7 @@ public class FishScript : IAutoScript
         // 截图窗口区域的图片
         point = FindBobberPoint(rect);
         // 如果点数 >= 300， 则认为鱼漂存在
-        return point.Item3 >= FishConfig.BobberPoints;
+        return point.Item3 >= FishConfig.Instance.BobberPoints;
     }
 
 
@@ -170,7 +170,7 @@ public class FishScript : IAutoScript
         while (_isRunning && DateTime.Now.ToFileTimeUtc() < utc )
         {
             var current = FindBobberPoint(rect);
-            if (current.Count < FishConfig.BobberPoints)
+            if (current.Count < FishConfig.Instance.BobberPoints)
             {
                 LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确");
                 return Task.FromResult(true);;
@@ -178,7 +178,7 @@ public class FishScript : IAutoScript
             
             var distance = Math.Pow(current.X - lastPos.Item1, 2) + Math.Pow(current.Y - lastPos.Item2, 2);
             LogHelper.Info($"鱼漂运动检测差值 {distance}");
-            if (distance >= FishConfig.Distance)
+            if (distance >= FishConfig.Instance.Distance)
             {
                 return Task.FromResult(true);;
             }
@@ -204,7 +204,7 @@ public class FishScript : IAutoScript
         
         // 符合鱼漂颜色的点
         LogHelper.Info("开始筛选符合颜色的点....");
-        var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Threshold);
+        var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
         LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
         if (bobberColoredPoints.Count == 0)
         {
@@ -222,7 +222,7 @@ public class FishScript : IAutoScript
 
     private void DebugScreenShot(Bitmap screenshot, List<(int, int)> bobberColoredPoints, int x, int width, int y, int height)
     {
-        if (FishConfig.Debug)
+        if (FishConfig.Instance.Debug)
         {
             screenshot.Save("screenshotBefore.png", ImageFormat.Png);
             foreach (var (w, h) in bobberColoredPoints)
