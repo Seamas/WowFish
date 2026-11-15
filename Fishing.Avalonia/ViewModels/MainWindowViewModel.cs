@@ -31,6 +31,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private int _bobberPoints;
 
     [ObservableProperty]
+    private bool _useBackgroundMode;
+
+    [ObservableProperty]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -47,6 +50,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _threshold = _config.Threshold;
         _distance = _config.Distance;
         _bobberPoints = _config.BobberPoints;
+        _useBackgroundMode = _config.UseBackgroundMode;
 
         _fishScript.VideoFrameReady += OnVideoFrameReady;
         LogHelper.LogReceived += OnLogReceived;
@@ -99,6 +103,12 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnBobberPointsChanged(int value)
     {
         _config.BobberPoints = value;
+        _config.Save();
+    }
+
+    partial void OnUseBackgroundModeChanged(bool value)
+    {
+        _config.UseBackgroundMode = value;
         _config.Save();
     }
 

@@ -25,6 +25,11 @@ public class FishConfig
 
     public int BobberPoints { get; set; } = 150;
 
+    /// <summary>
+    /// 是否启用后台模式（WGC 截图 + PostMessage 模拟输入）
+    /// </summary>
+    public bool UseBackgroundMode { get; set; } = false;
+
     private static FishConfig Load()
     {
         try
