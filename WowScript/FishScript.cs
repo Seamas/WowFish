@@ -18,7 +18,6 @@ public class FishScript : IAutoScript
     private const int FishingKey = 0x32; // 钓鱼按键数字2,此键是Windows虚拟按钮，与AscII码不同
 
     private HWndInfo? _hwndInfo;
-    private WgcWindowCapture? _wgcCapture;
 
     #endregion
 
@@ -45,23 +44,6 @@ public class FishScript : IAutoScript
             _isRunning = false;
             LogHelper.Info($"{Name} 初始化窗口失败，请重新尝试");
             return;
-        }
-
-        if (FishConfig.Instance.UseBackgroundMode)
-        {
-            try
-            {
-                _wgcCapture = new WgcWindowCapture();
-                _wgcCapture.Start(_hwndInfo!.HWnd);
-                LogHelper.Info("WGC 后台捕获已启动");
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Info($"WGC 启动失败，回退到前台模式: {ex.Message}");
-                FishConfig.Instance.UseBackgroundMode = false;
-                _wgcCapture?.Dispose();
-                _wgcCapture = null;
-            }
         }
 
         while(_isRunning)
@@ -117,8 +99,6 @@ public class FishScript : IAutoScript
     {
         await Task.Yield();
         _isRunning = false;
-        _wgcCapture?.Dispose();
-        _wgcCapture = null;
         LogHelper.Info($"{Name}结束!");
     }
 
@@ -160,19 +140,10 @@ public class FishScript : IAutoScript
     /// <returns></returns>
     private async Task CastFishing()
     {
-        if (FishConfig.Instance.UseBackgroundMode)
-        {
-            User32.PostMessage(_hwndInfo!.HWnd, User32.WM_KEYDOWN, (IntPtr)FishingKey, IntPtr.Zero);
-            await Task.Delay(100);
-            User32.PostMessage(_hwndInfo.HWnd, User32.WM_KEYUP, (IntPtr)FishingKey, IntPtr.Zero);
-        }
-        else
-        {
-            // 模拟按键按下和释放
-            User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyDown, 0);
-            await Task.Delay(100);
-            User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyUp, 0);
-        }
+        // 模拟按键按下和释放
+        User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyDown, 0);
+        await Task.Delay(100);
+        User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyUp, 0);
 
         // 等待动画结束
         await Task.Delay(2000);
@@ -227,48 +198,32 @@ public class FishScript : IAutoScript
 
     private (int X, int Y, int Count) FindBobberPoint(RECT rect)
     {
-        Bitmap? screenshot = null;
-        try
-        {
-            if (FishConfig.Instance.UseBackgroundMode && _wgcCapture != null)
-            {
-                screenshot = _wgcCapture.GetLatestFrame();
-                if (screenshot == null) return (0, 0, 0);
-            }
-            else
-            {
-                screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo!.Scale);
-            }
+        using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo.Scale);
 
-            var x = screenshot.Width / 4;
-            var y = screenshot.Height / 5;
-            var width = x + x;
-            var height = y + y;
+        var x = screenshot.Width / 4;
+        var y = screenshot.Height / 5;
+        var width = x + x;
+        var height = y + y;
 
-            // 符合鱼漂颜色的点
-            LogHelper.Info("开始筛选符合颜色的点....");
-            var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
-            LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
+        // 符合鱼漂颜色的点
+        LogHelper.Info("开始筛选符合颜色的点....");
+        var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
+        LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
 
-            // 经过中心化筛选出的鱼漂点
-            var multipleIteration = bobberColoredPoints.Count > 0
-                ? MultipleIteration(bobberColoredPoints)
-                : new List<(int, int)>();
+        // 经过中心化筛选出的鱼漂点
+        var multipleIteration = bobberColoredPoints.Count > 0
+            ? MultipleIteration(bobberColoredPoints)
+            : new List<(int, int)>();
 
-            // 鱼漂中心点
-            var center = multipleIteration.Count > 0
-                ? CenterOfBobber(multipleIteration)
-                : (0, 0, 0);
+        // 鱼漂中心点
+        var center = multipleIteration.Count > 0
+            ? CenterOfBobber(multipleIteration)
+            : (0, 0, 0);
 
-            DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
-            PublishVideoFrame(screenshot, bobberColoredPoints, center, x, y, width, height);
+        DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
+        PublishVideoFrame(screenshot, bobberColoredPoints, center, x, y, width, height);
 
-            return center;
-        }
-        finally
-        {
-            screenshot?.Dispose();
-        }
+        return center;
     }
 
     private void DebugScreenShot(Bitmap screenshot, List<(int, int)> bobberColoredPoints, int x, int width, int y, int height)
@@ -339,41 +294,20 @@ public class FishScript : IAutoScript
     /// <param name="hWndInfo"></param>
     private async Task ReelIn((int, int, int) position, RECT rect)
     {
-        if (FishConfig.Instance.UseBackgroundMode)
-        {
-            // WGC 截图坐标即为窗口坐标，需转换为窗口客户区坐标
-            ScreenCapture.GetClientRect(_hwndInfo!.HWnd, out _);
-            ScreenCapture.ClientToScreen(_hwndInfo.HWnd, out var clientTopLeft);
-            var clientOffsetX = clientTopLeft.X - rect.Left;
-            var clientOffsetY = clientTopLeft.Y - rect.Top;
+        // 由于有DPI缩放，需要计算出鼠标点击位置
+        var x = (int)((rect.Left + position.Item1) / _hwndInfo!.Scale);
+        var y = (int)((rect.Top + position.Item2) / _hwndInfo.Scale);
 
-            var clientX = position.Item1 - clientOffsetX;
-            var clientY = position.Item2 - clientOffsetY;
-            var lParam = User32.MakeLParam(clientX, clientY);
+        LogHelper.Info($"点击位置: {x}, {y} (原始位置: {position.Item1}, {position.Item2})");
 
-            LogHelper.Info($"后台点击客户区位置: {clientX}, {clientY} (原始位置: {position.Item1}, {position.Item2})");
+        // 设置鼠标位置
+        User32.SetCursorPos(x, y);
+        await Task.Delay(100); // 等待鼠标移动
 
-            User32.PostMessage(_hwndInfo.HWnd, User32.WM_LBUTTONDOWN, (IntPtr)User32.MK_LBUTTON, lParam);
-            await Task.Delay(100);
-            User32.PostMessage(_hwndInfo.HWnd, User32.WM_LBUTTONUP, IntPtr.Zero, lParam);
-        }
-        else
-        {
-            // 由于有DPI缩放，需要计算出鼠标点击位置
-            var x = (int)((rect.Left + position.Item1) / _hwndInfo!.Scale);
-            var y = (int)((rect.Top + position.Item2) / _hwndInfo.Scale);
-
-            LogHelper.Info($"点击位置: {x}, {y} (原始位置: {position.Item1}, {position.Item2})");
-
-            // 设置鼠标位置
-            User32.SetCursorPos(x, y);
-            await Task.Delay(100); // 等待鼠标移动
-
-            // 模拟鼠标左键点击
-            User32.mouse_event(InputEventConstant.MouseLeftDown, 0, 0, 0, 0);
-            await Task.Delay(100); // 等待点击效果
-            User32.mouse_event(InputEventConstant.MouseLeftUp, 0, 0, 0, 0);
-        }
+        // 模拟鼠标左键点击
+        User32.mouse_event(InputEventConstant.MouseLeftDown, 0, 0, 0, 0);
+        await Task.Delay(100); // 等待点击效果
+        User32.mouse_event(InputEventConstant.MouseLeftUp, 0, 0, 0, 0);
     }
 
 
