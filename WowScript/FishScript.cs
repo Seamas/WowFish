@@ -59,11 +59,12 @@ public class FishScript : IAutoScript
         {
             var utc = DateTime.Now.AddSeconds(30).ToFileTimeUtc();
             LogHelper.Info($"开始钓鱼流程..., 本次钓鱼结束时间最迟为 {utc}");
-            // 1. 施放钓鱼技能
-            await CastFishing();
-            
+
             var rect = WindowCapture.GetWindowRectangle(_hwndInfo!.HWnd);
             LogHelper.Info($"窗口位置: {rect.Left},{rect.Top} 大小: {rect.Width}x{rect.Height}");
+
+            // 1. 施放钓鱼技能
+            await CastFishing(rect);
 
             // 2. 查找鱼漂位置
             if (FindBobber(rect, out var lastPos))
@@ -138,15 +139,20 @@ public class FishScript : IAutoScript
     /// 进行钓鱼操作
     /// </summary>
     /// <returns></returns>
-    private async Task CastFishing()
+    private async Task CastFishing(RECT rect)
     {
         // 模拟按键按下和释放
         User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyDown, 0);
         await Task.Delay(100);
         User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyUp, 0);
 
-        // 等待动画结束
-        await Task.Delay(2000);
+        // 等待动画结束，期间持续刷新预览画面
+        var end = DateTime.Now.AddMilliseconds(2000);
+        while (_isRunning && DateTime.Now < end)
+        {
+            PublishPreviewFrame(rect);
+            await Task.Delay(100);
+        }
     }
 
     /// <summary>
@@ -198,12 +204,9 @@ public class FishScript : IAutoScript
 
     private (int X, int Y, int Count) FindBobberPoint(RECT rect)
     {
-        using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo.Scale);
+        using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo!.Scale);
 
-        var x = screenshot.Width / 4;
-        var y = screenshot.Height / 5;
-        var width = x + x;
-        var height = y + y;
+        var (x, y, width, height) = GetDetectRegion(screenshot.Width, screenshot.Height);
 
         // 符合鱼漂颜色的点
         LogHelper.Info("开始筛选符合颜色的点....");
@@ -221,9 +224,31 @@ public class FishScript : IAutoScript
             : (0, 0, 0);
 
         DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
-        PublishVideoFrame(screenshot, bobberColoredPoints, center, x, y, width, height);
+        PublishVideoFrame(screenshot, bobberColoredPoints, multipleIteration, center, x, y, width, height);
 
         return center;
+    }
+
+    /// <summary>
+    /// 计算检测区域（图像中心偏上区域）
+    /// </summary>
+    private static (int X, int Y, int Width, int Height) GetDetectRegion(int imageWidth, int imageHeight)
+    {
+        var x = imageWidth / 4;
+        var y = imageHeight / 5;
+        return (x, y, x * 2, y * 2);
+    }
+
+    /// <summary>
+    /// 仅发布预览画面（不进行鱼漂检测），用于施法等待等空闲阶段
+    /// </summary>
+    private void PublishPreviewFrame(RECT rect)
+    {
+        if (VideoFrameReady == null) return;
+
+        using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo!.Scale);
+        var (x, y, width, height) = GetDetectRegion(screenshot.Width, screenshot.Height);
+        PublishVideoFrame(screenshot, new List<(int, int)>(), new List<(int, int)>(), (0, 0, 0), x, y, width, height);
     }
 
     private void DebugScreenShot(Bitmap screenshot, List<(int, int)> bobberColoredPoints, int x, int width, int y, int height)
@@ -257,28 +282,57 @@ public class FishScript : IAutoScript
     }
 
 
-    private void PublishVideoFrame(Bitmap screenshot, List<(int, int)> coloredPoints, (int X, int Y, int Count) center, int x, int y, int width, int height)
+    private void PublishVideoFrame(Bitmap screenshot, List<(int, int)> coloredPoints, List<(int, int)> bobberPoints,
+        (int X, int Y, int Count) center, int x, int y, int width, int height)
     {
         if (VideoFrameReady == null) return;
 
         using var annotated = new Bitmap(screenshot);
         using var g = Graphics.FromImage(annotated);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-        // 绘制检测区域边框
-        g.DrawRectangle(Pens.Yellow, x, y, width, height);
+        // 线宽随图片分辨率放大，避免缩放显示后看不见
+        var thickness = Math.Max(2, screenshot.Width / 400);
 
-        // 标注筛选出的颜色点
-        foreach (var (px, py) in coloredPoints)
+        // 1. 检测区域边框（半透明黄色填充 + 实线边框），始终绘制
+        using (var fillBrush = new SolidBrush(Color.FromArgb(32, Color.Yellow)))
         {
-            annotated.SetPixel(px, py, Color.Red);
+            g.FillRectangle(fillBrush, x, y, width, height);
         }
 
-        // 标注鱼漂中心点
+        using (var regionPen = new Pen(Color.Yellow, thickness))
+        {
+            g.DrawRectangle(regionPen, x, y, width, height);
+        }
+
+        // 2. 所有符合颜色的点用红色小方块标注
+        var dotSize = Math.Max(2, thickness / 2);
+        using (var coloredBrush = new SolidBrush(Color.Red))
+        {
+            foreach (var (px, py) in coloredPoints)
+            {
+                g.FillRectangle(coloredBrush, px - dotSize / 2, py - dotSize / 2, dotSize, dotSize);
+            }
+        }
+
+        // 3. 经筛选后的鱼漂点用亮绿色标注
+        var bobberDotSize = Math.Max(3, thickness);
+        using (var bobberBrush = new SolidBrush(Color.Lime))
+        {
+            foreach (var (px, py) in bobberPoints)
+            {
+                g.FillRectangle(bobberBrush, px - bobberDotSize / 2, py - bobberDotSize / 2, bobberDotSize, bobberDotSize);
+            }
+        }
+
+        // 4. 鱼漂中心点十字与圆圈
         if (center.Count > 0)
         {
-            g.DrawEllipse(Pens.Lime, center.X - 10, center.Y - 10, 20, 20);
-            g.DrawLine(Pens.Lime, center.X - 15, center.Y, center.X + 15, center.Y);
-            g.DrawLine(Pens.Lime, center.X, center.Y - 15, center.X, center.Y + 15);
+            var radius = Math.Max(10, screenshot.Width / 150);
+            using var centerPen = new Pen(Color.Lime, thickness);
+            g.DrawEllipse(centerPen, center.X - radius, center.Y - radius, radius * 2, radius * 2);
+            g.DrawLine(centerPen, center.X - radius - thickness * 2, center.Y, center.X + radius + thickness * 2, center.Y);
+            g.DrawLine(centerPen, center.X, center.Y - radius - thickness * 2, center.X, center.Y + radius + thickness * 2);
         }
 
         using var ms = new MemoryStream();
