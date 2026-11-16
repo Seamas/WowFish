@@ -35,6 +35,11 @@ public class FishConfig
     /// </summary>
     public string BaitKey { get; set; } = "3";
 
+    /// <summary>
+    /// 鱼饵持续时间（分钟），未超过该时间不会重复上鱼饵
+    /// </summary>
+    public int BaitDurationMinutes { get; set; } = 10;
+
     private static FishConfig Load()
     {
         try

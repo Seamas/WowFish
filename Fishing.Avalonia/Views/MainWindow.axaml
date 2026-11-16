@@ -35,9 +35,13 @@
                 </WrapPanel>
                 <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <CheckBox Content="自动上鱼饵" IsChecked="{Binding UseBait}" Margin="0,0,20,0"/>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,20,0">
                         <TextBlock Text="鱼饵按键" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding BaitKey}" Width="80" Watermark="如 3、F3、A"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="鱼饵持续(分钟)" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding BaitDurationMinutes}" Width="80"/>
                     </StackPanel>
                 </WrapPanel>
             </StackPanel>

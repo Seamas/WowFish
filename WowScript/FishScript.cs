@@ -19,6 +19,11 @@ public class FishScript : IAutoScript
 
     private HWndInfo? _hwndInfo;
 
+    /// <summary>
+    /// 上次上鱼饵的时间，用于判断鱼饵是否仍然有效
+    /// </summary>
+    private DateTime _lastBaitTime = DateTime.MinValue;
+
     #endregion
 
     public string Name => "自动钓鱼";
@@ -57,14 +62,14 @@ public class FishScript : IAutoScript
     {
         try
         {
-            var utc = DateTime.Now.AddSeconds(30).ToFileTimeUtc();
-            LogHelper.Info($"开始钓鱼流程..., 本次钓鱼结束时间最迟为 {utc}");
-
             var rect = WindowCapture.GetWindowRectangle(_hwndInfo!.HWnd);
             LogHelper.Info($"窗口位置: {rect.Left},{rect.Top} 大小: {rect.Width}x{rect.Height}");
 
-            // 1. 上鱼饵（如果启用）
+            // 1. 上鱼饵（如果启用），该步骤耗时不计入本次钓鱼超时
             await ApplyBait();
+
+            var utc = DateTime.Now.AddSeconds(30).ToFileTimeUtc();
+            LogHelper.Info($"开始钓鱼流程..., 本次钓鱼结束时间最迟为 {utc}");
 
             // 2. 施放钓鱼技能
             await CastFishing(rect);
@@ -103,6 +108,8 @@ public class FishScript : IAutoScript
     {
         await Task.Yield();
         _isRunning = false;
+        // 停止后重置鱼饵计时，下次启动重新上饵
+        _lastBaitTime = DateTime.MinValue;
         LogHelper.Info($"{Name}结束!");
     }
 
@@ -146,6 +153,17 @@ public class FishScript : IAutoScript
         var config = FishConfig.Instance;
         if (!config.UseBait) return;
 
+        // 鱼饵仍在有效期内，无需重复上饵
+        if (_lastBaitTime != DateTime.MinValue)
+        {
+            var usedMinutes = (DateTime.Now - _lastBaitTime).TotalMinutes;
+            if (usedMinutes < config.BaitDurationMinutes)
+            {
+                LogHelper.Info($"鱼饵仍有效（已使用 {usedMinutes:F1} 分钟 / {config.BaitDurationMinutes} 分钟），跳过上鱼饵");
+                return;
+            }
+        }
+
         var keyCode = ParseKeyCode(config.BaitKey);
         if (keyCode == 0)
         {
@@ -158,8 +176,9 @@ public class FishScript : IAutoScript
         await Task.Delay(100);
         User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
 
-        // 等待上鱼饵宏执行完成
-        await Task.Delay(1000);
+        // 等待上鱼饵动作完成
+        await Task.Delay(5000);
+        _lastBaitTime = DateTime.Now;
     }
 
     /// <summary>

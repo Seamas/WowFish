@@ -37,6 +37,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _baitKey = "3";
 
     [ObservableProperty]
+    private int _baitDurationMinutes = 10;
+
+    [ObservableProperty]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -55,6 +58,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _bobberPoints = _config.BobberPoints;
         _useBait = _config.UseBait;
         _baitKey = _config.BaitKey;
+        _baitDurationMinutes = _config.BaitDurationMinutes;
 
         _fishScript.VideoFrameReady += OnVideoFrameReady;
         LogHelper.LogReceived += OnLogReceived;
@@ -119,6 +123,12 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnBaitKeyChanged(string value)
     {
         _config.BaitKey = value;
+        _config.Save();
+    }
+
+    partial void OnBaitDurationMinutesChanged(int value)
+    {
+        _config.BaitDurationMinutes = value;
         _config.Save();
     }
 
