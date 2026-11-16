@@ -33,6 +33,13 @@
                         <TextBox Text="{Binding BobberPoints}" Width="80"/>
                     </StackPanel>
                 </WrapPanel>
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Content="自动上鱼饵" IsChecked="{Binding UseBait}" Margin="0,0,20,0"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="鱼饵按键" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding BaitKey}" Width="80" Watermark="如 3、F3、A"/>
+                    </StackPanel>
+                </WrapPanel>
             </StackPanel>
         </Border>
 

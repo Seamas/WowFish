@@ -25,6 +25,16 @@ public class FishConfig
 
     public int BobberPoints { get; set; } = 150;
 
+    /// <summary>
+    /// 是否在每次钓鱼前自动上鱼饵
+    /// </summary>
+    public bool UseBait { get; set; } = false;
+
+    /// <summary>
+    /// 上鱼饵按键（游戏内宏按键），如 3、F3、A 等
+    /// </summary>
+    public string BaitKey { get; set; } = "3";
+
     private static FishConfig Load()
     {
         try

@@ -63,16 +63,19 @@ public class FishScript : IAutoScript
             var rect = WindowCapture.GetWindowRectangle(_hwndInfo!.HWnd);
             LogHelper.Info($"窗口位置: {rect.Left},{rect.Top} 大小: {rect.Width}x{rect.Height}");
 
-            // 1. 施放钓鱼技能
+            // 1. 上鱼饵（如果启用）
+            await ApplyBait();
+
+            // 2. 施放钓鱼技能
             await CastFishing(rect);
 
-            // 2. 查找鱼漂位置
+            // 3. 查找鱼漂位置
             if (FindBobber(rect, out var lastPos))
             {
-                // 3 等待鱼上钩
+                // 4. 等待鱼上钩
                 if (await DetectBobberBite(rect, lastPos, utc))
                 {
-                    // 4 收竿
+                    // 5. 收竿
                     await ReelIn(lastPos, rect);
                 }
                 else
@@ -133,6 +136,53 @@ public class FishScript : IAutoScript
 
         _hwndInfo = hWnd;
         return true;
+    }
+
+    /// <summary>
+    /// 上鱼饵（按下游戏内配置好的宏按键）
+    /// </summary>
+    private async Task ApplyBait()
+    {
+        var config = FishConfig.Instance;
+        if (!config.UseBait) return;
+
+        var keyCode = ParseKeyCode(config.BaitKey);
+        if (keyCode == 0)
+        {
+            LogHelper.Info($"鱼饵按键配置无效: {config.BaitKey}");
+            return;
+        }
+
+        LogHelper.Info($"上鱼饵: 按下 {config.BaitKey}");
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
+        await Task.Delay(100);
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
+
+        // 等待上鱼饵宏执行完成
+        await Task.Delay(1000);
+    }
+
+    /// <summary>
+    /// 将按键名转换为 Windows 虚拟键码，支持 0-9、A-Z、F1-F12
+    /// </summary>
+    private static byte ParseKeyCode(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return 0;
+        key = key.Trim().ToUpperInvariant();
+
+        if (key.Length == 1)
+        {
+            var c = key[0];
+            if (c >= '0' && c <= '9') return (byte)(0x30 + c - '0');
+            if (c >= 'A' && c <= 'Z') return (byte)(0x41 + c - 'A');
+        }
+
+        if (key.StartsWith('F') && int.TryParse(key[1..], out var n) && n >= 1 && n <= 12)
+        {
+            return (byte)(0x70 + n - 1);
+        }
+
+        return 0;
     }
 
     /// <summary>
