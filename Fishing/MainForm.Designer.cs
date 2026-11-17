@@ -69,11 +69,14 @@ partial class MainForm
         //
         splitContainer1.Panel2.Controls.Add(richTextBoxLog);
         splitContainer1.Size = new Size(1200, 800);
-        splitContainer1.SplitterDistance = 180;
+        splitContainer1.SplitterDistance = 225;
         splitContainer1.TabIndex = 0;
         //
         // groupbox1
         //
+        groupbox1.Controls.Add(txbFillKey);
+        groupbox1.Controls.Add(label7);
+        groupbox1.Controls.Add(chkboxUseFillKey);
         groupbox1.Controls.Add(txbBaitDuration);
         groupbox1.Controls.Add(label6);
         groupbox1.Controls.Add(txbBaitKey);
@@ -90,10 +93,36 @@ partial class MainForm
         groupbox1.Dock = DockStyle.Fill;
         groupbox1.Location = new Point(0, 0);
         groupbox1.Name = "groupbox1";
-        groupbox1.Size = new Size(1200, 180);
+        groupbox1.Size = new Size(1200, 225);
         groupbox1.TabIndex = 0;
         groupbox1.TabStop = false;
         groupbox1.Text = "设置区";
+        //
+        // txbFillKey
+        //
+        txbFillKey.Location = new Point(430, 155);
+        txbFillKey.Name = "txbFillKey";
+        txbFillKey.Size = new Size(120, 30);
+        txbFillKey.TabIndex = 15;
+        //
+        // label7
+        //
+        label7.AutoSize = true;
+        label7.Location = new Point(330, 158);
+        label7.Name = "label7";
+        label7.Size = new Size(82, 24);
+        label7.TabIndex = 14;
+        label7.Text = "填充按键";
+        //
+        // chkboxUseFillKey
+        //
+        chkboxUseFillKey.AutoSize = true;
+        chkboxUseFillKey.Location = new Point(85, 155);
+        chkboxUseFillKey.Name = "chkboxUseFillKey";
+        chkboxUseFillKey.Size = new Size(124, 28);
+        chkboxUseFillKey.TabIndex = 13;
+        chkboxUseFillKey.Text = "使用填充键";
+        chkboxUseFillKey.UseVisualStyleBackColor = true;
         //
         // txbBaitDuration
         //
@@ -252,5 +281,8 @@ partial class MainForm
     private Label label5;
     private TextBox txbBaitDuration;
     private Label label6;
+    private CheckBox chkboxUseFillKey;
+    private TextBox txbFillKey;
+    private Label label7;
     private RichTextBox richTextBoxLog;
 }

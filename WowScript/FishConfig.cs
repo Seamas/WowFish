@@ -40,6 +40,16 @@ public class FishConfig
     /// </summary>
     public int BaitDurationMinutes { get; set; } = 10;
 
+    /// <summary>
+    /// 是否在每次钓鱼前使用填充键（用于消耗蚌壳等物品，清理背包空格）
+    /// </summary>
+    public bool UseFillKey { get; set; } = false;
+
+    /// <summary>
+    /// 填充键按键（游戏内宏按键），如 1、F4、B 等
+    /// </summary>
+    public string FillKey { get; set; } = "1";
+
     private static FishConfig Load()
     {
         try

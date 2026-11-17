@@ -65,22 +65,26 @@ public class FishScript : IAutoScript
             var rect = WindowCapture.GetWindowRectangle(_hwndInfo!.HWnd);
             LogHelper.Info($"窗口位置: {rect.Left},{rect.Top} 大小: {rect.Width}x{rect.Height}");
 
-            // 1. 上鱼饵（如果启用），该步骤耗时不计入本次钓鱼超时
+            // 1. 使用填充键清理背包空格（如果启用）
+            await ApplyFillKey();
+
+            // 2. 上鱼饵（如果启用），该步骤耗时不计入本次钓鱼超时
             await ApplyBait();
 
             var utc = DateTime.Now.AddSeconds(30).ToFileTimeUtc();
+            LogHelper.Info("--------------------");
             LogHelper.Info($"开始钓鱼流程..., 本次钓鱼结束时间最迟为 {utc}");
 
-            // 2. 施放钓鱼技能
+            // 3. 施放钓鱼技能
             await CastFishing(rect);
 
-            // 3. 查找鱼漂位置
+            // 4. 查找鱼漂位置
             if (FindBobber(rect, out var lastPos))
             {
-                // 4. 等待鱼上钩
+                // 5. 等待鱼上钩
                 if (await DetectBobberBite(rect, lastPos, utc))
                 {
-                    // 5. 收竿
+                    // 6. 收竿
                     await ReelIn(lastPos, rect);
                 }
                 else
@@ -143,6 +147,30 @@ public class FishScript : IAutoScript
 
         _hwndInfo = hWnd;
         return true;
+    }
+
+    /// <summary>
+    /// 使用填充键（消耗蚌壳等物品，清理背包空格）
+    /// </summary>
+    private async Task ApplyFillKey()
+    {
+        var config = FishConfig.Instance;
+        if (!config.UseFillKey) return;
+
+        var keyCode = ParseKeyCode(config.FillKey);
+        if (keyCode == 0)
+        {
+            LogHelper.Info($"填充键配置无效: {config.FillKey}");
+            return;
+        }
+
+        LogHelper.Info($"使用填充键: 按下 {config.FillKey}");
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
+        await Task.Delay(100);
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
+
+        // 等待填充动作完成
+        await Task.Delay(500);
     }
 
     /// <summary>

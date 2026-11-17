@@ -21,6 +21,8 @@ public partial class MainForm : Form
         chkboxUseBait.Checked = config.UseBait;
         txbBaitKey.Text = config.BaitKey;
         txbBaitDuration.Text = config.BaitDurationMinutes.ToString();
+        chkboxUseFillKey.Checked = config.UseFillKey;
+        txbFillKey.Text = config.FillKey;
     }
 
     private void btnApply_Click(object sender, EventArgs e)
@@ -29,6 +31,8 @@ public partial class MainForm : Form
         config.Debug = chkboxDebug.Checked;
         config.UseBait = chkboxUseBait.Checked;
         config.BaitKey = txbBaitKey.Text;
+        config.UseFillKey = chkboxUseFillKey.Checked;
+        config.FillKey = txbFillKey.Text;
 
         if (double.TryParse(txbDistance.Text, out var distance))
         {

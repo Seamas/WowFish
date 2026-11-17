@@ -40,6 +40,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private int _baitDurationMinutes = 10;
 
     [ObservableProperty]
+    private bool _useFillKey;
+
+    [ObservableProperty]
+    private string _fillKey = "1";
+
+    [ObservableProperty]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -59,6 +65,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _useBait = _config.UseBait;
         _baitKey = _config.BaitKey;
         _baitDurationMinutes = _config.BaitDurationMinutes;
+        _useFillKey = _config.UseFillKey;
+        _fillKey = _config.FillKey;
 
         _fishScript.VideoFrameReady += OnVideoFrameReady;
         LogHelper.LogReceived += OnLogReceived;
@@ -129,6 +137,18 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnBaitDurationMinutesChanged(int value)
     {
         _config.BaitDurationMinutes = value;
+        _config.Save();
+    }
+
+    partial void OnUseFillKeyChanged(bool value)
+    {
+        _config.UseFillKey = value;
+        _config.Save();
+    }
+
+    partial void OnFillKeyChanged(string value)
+    {
+        _config.FillKey = value;
         _config.Save();
     }
 
