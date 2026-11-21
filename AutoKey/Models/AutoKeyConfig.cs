@@ -26,9 +26,9 @@ public class AutoKeyConfig
     public string Key { get; set; } = "1";
 
     /// <summary>
-    /// 按键间隔（秒）
+    /// 按键间隔（秒），支持小数，如 1.5
     /// </summary>
-    public int IntervalSeconds { get; set; } = 5;
+    public double IntervalSeconds { get; set; } = 5;
 
     /// <summary>
     /// 按键重复次数

@@ -19,7 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _key = "1";
 
     [ObservableProperty]
-    private int _intervalSeconds = 5;
+    private double _intervalSeconds = 5;
 
     [ObservableProperty]
     private int _repeatCount = 10;
@@ -55,7 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _config.Save();
     }
 
-    partial void OnIntervalSecondsChanged(int value)
+    partial void OnIntervalSecondsChanged(double value)
     {
         _config.IntervalSeconds = value;
         _config.Save();
