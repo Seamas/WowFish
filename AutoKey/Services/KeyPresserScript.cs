@@ -55,7 +55,7 @@ public class KeyPresserScript : IAutoScript
 
         LogHelper.Info($"目标窗口: {WindowHelper.GetWindowTitle(hwnd)} (句柄 {hwnd})");
         LogHelper.Info("按键将以窗口消息方式发送，窗口可被其他窗口遮挡，但不可最小化");
-        LogHelper.Info($"{Name}开始：按键 {config.Key}，间隔 {config.IntervalSeconds} 秒，共 {config.RepeatCount} 次");
+        LogHelper.Info($"{Name}开始：按键 {config.Key}，间隔 {config.IntervalMilliseconds} 毫秒，共 {config.RepeatCount} 次");
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _cts = cts;
@@ -84,7 +84,7 @@ public class KeyPresserScript : IAutoScript
 
                 if (i < config.RepeatCount)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Max(0, config.IntervalSeconds)), token);
+                    await Task.Delay(TimeSpan.FromMilliseconds(Math.Max(0, config.IntervalMilliseconds)), token);
                 }
             }
         }

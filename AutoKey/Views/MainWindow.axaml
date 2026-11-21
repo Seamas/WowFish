@@ -23,8 +23,8 @@
                         <TextBox Text="{Binding Key}" Width="100" Watermark="如 1、F3、A"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,24,0">
-                        <TextBlock Text="间隔(秒)" VerticalAlignment="Center"/>
-                        <TextBox Text="{Binding IntervalSeconds}" Width="100" Watermark="如 1.5"/>
+                        <TextBlock Text="间隔(毫秒)" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding IntervalMilliseconds}" Width="100" Watermark="如 1500"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="重复次数" VerticalAlignment="Center"/>

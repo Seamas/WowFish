@@ -19,7 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _key = "1";
 
     [ObservableProperty]
-    private double _intervalSeconds = 5;
+    private int _intervalMilliseconds = 5000;
 
     [ObservableProperty]
     private int _repeatCount = 10;
@@ -32,7 +32,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _key = _config.Key;
-        _intervalSeconds = _config.IntervalSeconds;
+        _intervalMilliseconds = _config.IntervalMilliseconds;
         _repeatCount = _config.RepeatCount;
         LogHelper.LogReceived += OnLogReceived;
     }
@@ -55,9 +55,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _config.Save();
     }
 
-    partial void OnIntervalSecondsChanged(double value)
+    partial void OnIntervalMillisecondsChanged(int value)
     {
-        _config.IntervalSeconds = value;
+        _config.IntervalMilliseconds = value;
         _config.Save();
     }
 
