@@ -11,6 +11,9 @@ namespace AutoKey.Services;
 /// </summary>
 public class KeyPresserScript : IAutoScript
 {
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmKeyUp = 0x0101;
+
     private volatile bool _isRunning;
 
     public string Name => "自动按键";
@@ -44,7 +47,14 @@ public class KeyPresserScript : IAutoScript
             return;
         }
 
+        if (User32.IsIconic(hwnd))
+        {
+            LogHelper.Info("目标窗口已最小化，请恢复窗口后重试。");
+            return;
+        }
+
         LogHelper.Info($"目标窗口: {WindowHelper.GetWindowTitle(hwnd)} (句柄 {hwnd})");
+        LogHelper.Info("按键将以窗口消息方式发送，窗口可被其他窗口遮挡，但不可最小化");
         LogHelper.Info($"{Name}开始：按键 {config.Key}，间隔 {config.IntervalSeconds} 秒，共 {config.RepeatCount} 次");
 
         _isRunning = true;
@@ -54,9 +64,20 @@ public class KeyPresserScript : IAutoScript
             {
                 if (!_isRunning || cancellationToken.IsCancellationRequested) break;
 
-                User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
+                if (!PostKey(hwnd, WmKeyDown, keyCode))
+                {
+                    LogHelper.Info("发送按键失败，目标窗口可能已关闭");
+                    break;
+                }
+
                 await Task.Delay(100, cancellationToken);
-                User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
+
+                if (!PostKey(hwnd, WmKeyUp, keyCode))
+                {
+                    LogHelper.Info("发送按键失败，目标窗口可能已关闭");
+                    break;
+                }
+
                 LogHelper.Info($"第 {i}/{config.RepeatCount} 次按下 {config.Key}");
 
                 if (i < config.RepeatCount)
@@ -74,6 +95,18 @@ public class KeyPresserScript : IAutoScript
             _isRunning = false;
             LogHelper.Info($"{Name}结束");
         }
+    }
+
+    /// <summary>
+    /// 通过窗口消息发送按键，无需目标窗口处于前台
+    /// </summary>
+    private static bool PostKey(IntPtr hWnd, uint message, byte virtualKey)
+    {
+        var scanCode = (uint)User32.MapVirtualKey(virtualKey, 0);
+        var keyUp = message == WmKeyUp;
+        // 按下：重复次数 1 + 扫描码；抬起：额外置位第 30、31 位
+        var lParam = (IntPtr)(1u | (scanCode << 16) | (keyUp ? (1u << 30) | 0x80000000u : 0u));
+        return User32.PostMessage(hWnd, message, (IntPtr)virtualKey, lParam);
     }
 
     public async Task StopAsync()
