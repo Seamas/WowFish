@@ -14,17 +14,17 @@ public class KeyPresserScript : IAutoScript
     private const uint WmKeyDown = 0x0100;
     private const uint WmKeyUp = 0x0101;
 
-    private volatile bool _isRunning;
+    private CancellationTokenSource? _cts;
 
     public string Name => "自动按键";
 
-    public bool IsRunning => _isRunning;
+    public bool IsRunning => _cts is { IsCancellationRequested: false };
 
     public object ScriptData => new object();
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_isRunning) return;
+        if (_cts != null) return;
 
         var config = AutoKeyConfig.Instance;
         var keyCode = ParseKeyCode(config.Key);
@@ -57,12 +57,14 @@ public class KeyPresserScript : IAutoScript
         LogHelper.Info("按键将以窗口消息方式发送，窗口可被其他窗口遮挡，但不可最小化");
         LogHelper.Info($"{Name}开始：按键 {config.Key}，间隔 {config.IntervalSeconds} 秒，共 {config.RepeatCount} 次");
 
-        _isRunning = true;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _cts = cts;
+        var token = cts.Token;
         try
         {
             for (var i = 1; i <= config.RepeatCount; i++)
             {
-                if (!_isRunning || cancellationToken.IsCancellationRequested) break;
+                if (token.IsCancellationRequested) break;
 
                 if (!PostKey(hwnd, WmKeyDown, keyCode))
                 {
@@ -70,7 +72,7 @@ public class KeyPresserScript : IAutoScript
                     break;
                 }
 
-                await Task.Delay(100, cancellationToken);
+                await Task.Delay(100, token);
 
                 if (!PostKey(hwnd, WmKeyUp, keyCode))
                 {
@@ -82,7 +84,7 @@ public class KeyPresserScript : IAutoScript
 
                 if (i < config.RepeatCount)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Max(0, config.IntervalSeconds)), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Max(0, config.IntervalSeconds)), token);
                 }
             }
         }
@@ -92,7 +94,8 @@ public class KeyPresserScript : IAutoScript
         }
         finally
         {
-            _isRunning = false;
+            _cts = null;
+            cts.Dispose();
             LogHelper.Info($"{Name}结束");
         }
     }
@@ -112,9 +115,18 @@ public class KeyPresserScript : IAutoScript
     public async Task StopAsync()
     {
         await Task.Yield();
-        if (!_isRunning) return;
+        var cts = _cts;
+        if (cts == null) return;
 
-        _isRunning = false;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // 循环已结束并释放
+        }
+
         LogHelper.Info($"{Name}已停止");
     }
 
