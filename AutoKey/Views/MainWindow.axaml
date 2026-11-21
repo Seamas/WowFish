@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AutoKey.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="620"
+        x:Class="AutoKey.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="AutoKey - 自动按键"
+        Width="760" Height="620">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+        <Border Grid.Row="0" Padding="12" CornerRadius="6" BorderBrush="#ddd" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <TextBlock Text="按键设置" FontSize="18" FontWeight="Bold"/>
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,24,0">
+                        <TextBlock Text="按键" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Key}" Width="100" Watermark="如 1、F3、A"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,24,0">
+                        <TextBlock Text="间隔(秒)" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding IntervalSeconds}" Width="100"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="重复次数" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding RepeatCount}" Width="100"/>
+                    </StackPanel>
+                </WrapPanel>
+                <TextBlock TextWrapping="Wrap" Foreground="Gray"
+                           Text="说明：先切换到游戏窗口，按 F11 开始；按 F12 可随时停止。执行完设定的次数后会自动停止。按键会发送到当前前台窗口，执行期间请保持游戏窗口在前台。"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,12">
+            <Button Content="开始 (F11)" Command="{Binding StartCommand}" IsEnabled="{Binding !IsRunning}" Padding="20,8"/>
+            <Button Content="停止 (F12)" Command="{Binding StopCommand}" IsEnabled="{Binding IsRunning}" Padding="20,8"/>
+            <TextBlock Text="{Binding IsRunning, StringFormat='状态: {0}'}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="8" CornerRadius="6" BorderBrush="#ddd" BorderThickness="1">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Text="运行日志" FontWeight="Bold" Margin="0,0,0,8"/>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" FontFamily="Consolas" FontSize="12"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

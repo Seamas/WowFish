@@ -1,0 +1,110 @@
+using AutoKey.Models;
+using AutoScript;
+using KenerlImport;
+using LogDll;
+using WindowsDll;
+
+namespace AutoKey.Services;
+
+/// <summary>
+/// 自动按键脚本：对当前前台窗口每隔一段时间按一次键，达到设定次数后自动停止
+/// </summary>
+public class KeyPresserScript : IAutoScript
+{
+    private volatile bool _isRunning;
+
+    public string Name => "自动按键";
+
+    public bool IsRunning => _isRunning;
+
+    public object ScriptData => new object();
+
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isRunning) return;
+
+        var config = AutoKeyConfig.Instance;
+        var keyCode = ParseKeyCode(config.Key);
+        if (keyCode == 0)
+        {
+            LogHelper.Info($"按键配置无效: {config.Key}");
+            return;
+        }
+
+        if (config.RepeatCount <= 0)
+        {
+            LogHelper.Info($"重复次数必须大于 0，当前为 {config.RepeatCount}");
+            return;
+        }
+
+        var hwnd = WindowHelper.GetActiveWindowHandle();
+        if (hwnd == IntPtr.Zero)
+        {
+            LogHelper.Info("未检测到活动窗口，请确保游戏窗口处于前台。");
+            return;
+        }
+
+        LogHelper.Info($"目标窗口: {WindowHelper.GetWindowTitle(hwnd)} (句柄 {hwnd})");
+        LogHelper.Info($"{Name}开始：按键 {config.Key}，间隔 {config.IntervalSeconds} 秒，共 {config.RepeatCount} 次");
+
+        _isRunning = true;
+        try
+        {
+            for (var i = 1; i <= config.RepeatCount; i++)
+            {
+                if (!_isRunning || cancellationToken.IsCancellationRequested) break;
+
+                User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
+                await Task.Delay(100, cancellationToken);
+                User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
+                LogHelper.Info($"第 {i}/{config.RepeatCount} 次按下 {config.Key}");
+
+                if (i < config.RepeatCount)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Max(0, config.IntervalSeconds)), cancellationToken);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 已停止
+        }
+        finally
+        {
+            _isRunning = false;
+            LogHelper.Info($"{Name}结束");
+        }
+    }
+
+    public async Task StopAsync()
+    {
+        await Task.Yield();
+        if (!_isRunning) return;
+
+        _isRunning = false;
+        LogHelper.Info($"{Name}已停止");
+    }
+
+    /// <summary>
+    /// 将按键名转换为 Windows 虚拟键码，支持 0-9、A-Z、F1-F12
+    /// </summary>
+    private static byte ParseKeyCode(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return 0;
+        key = key.Trim().ToUpperInvariant();
+
+        if (key.Length == 1)
+        {
+            var c = key[0];
+            if (c >= '0' && c <= '9') return (byte)(0x30 + c - '0');
+            if (c >= 'A' && c <= 'Z') return (byte)(0x41 + c - 'A');
+        }
+
+        if (key.StartsWith('F') && int.TryParse(key[1..], out var n) && n >= 1 && n <= 12)
+        {
+            return (byte)(0x70 + n - 1);
+        }
+
+        return 0;
+    }
+}
