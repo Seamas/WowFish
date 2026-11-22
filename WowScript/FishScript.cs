@@ -89,12 +89,12 @@ public class FishScript : IAutoScript
                 }
                 else
                 {
-                    LogHelper.Info($"超时未检测到鱼上钩");
+                    LogHelper.Info($"超时未检测到鱼上钩", Color.Blue);
                 }
             }
             else
             {
-                LogHelper.Info("未检测到鱼漂....");
+                LogHelper.Info("未检测到鱼漂....", Color.Red);
             }
 
             // 等待随机时间
@@ -281,12 +281,12 @@ public class FishScript : IAutoScript
             var current = FindBobberPoint(rect);
             if (current.Count < FishConfig.Instance.BobberPoints)
             {
-                LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确");
+                LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确", Color.Red);
                 return true;
             }
 
             var distance = Math.Pow(current.X - lastPos.Item1, 2) + Math.Pow(current.Y - lastPos.Item2, 2);
-            LogHelper.Info($"鱼漂运动检测差值 {distance}");
+            LogHelper.Info($"鱼漂运动检测差值 {distance:F2}", Color.Green);
             if (distance >= FishConfig.Instance.Distance)
             {
                 return true;
@@ -303,6 +303,7 @@ public class FishScript : IAutoScript
     {
         using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo!.Scale);
 
+        // 计算检测区域, 不需要计算整个图像，以加快检测速度
         var (x, y, width, height) = GetDetectRegion(screenshot.Width, screenshot.Height);
 
         // 符合鱼漂颜色的点
@@ -451,6 +452,10 @@ public class FishScript : IAutoScript
 
         LogHelper.Info($"点击位置: {x}, {y} (原始位置: {position.Item1}, {position.Item2})");
 
+        // 收竿前把游戏窗口置为前台，否则点击会落在遮挡它的其他窗口上，导致鱼没有捡起来
+        User32.SetForegroundWindow(_hwndInfo.HWnd);
+        await Task.Delay(200);
+
         // 设置鼠标位置
         User32.SetCursorPos(x, y);
         await Task.Delay(100); // 等待鼠标移动
@@ -459,6 +464,9 @@ public class FishScript : IAutoScript
         User32.mouse_event(InputEventConstant.MouseLeftDown, 0, 0, 0, 0);
         await Task.Delay(100); // 等待点击效果
         User32.mouse_event(InputEventConstant.MouseLeftUp, 0, 0, 0, 0);
+
+        // 等待200ms，确保点击效果生效
+        await Task.Delay(200);
     }
 
 
@@ -562,6 +570,8 @@ public class FishScript : IAutoScript
             
             // 计算标准差
             double stdDev = Math.Sqrt(distance.Average(d => Math.Pow(d - distance.Average(), 2)));
+
+            LogHelper.Info($"第{index}次迭代: 标准差={stdDev:F2}", Color.Purple);
 
             // 过滤距离过大的点
             currentPoints = currentPoints
