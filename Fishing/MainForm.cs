@@ -5,6 +5,16 @@ namespace Fishing;
 
 public partial class MainForm : Form
 {
+    /// <summary>
+    /// 日志最大保留行数，超出后删除最早的日志，避免长时间运行内存持续增长
+    /// </summary>
+    private const int MaxLogLines = 500;
+
+    /// <summary>
+    /// 每次裁剪删除的旧日志行数（批量删除，避免频繁操作控件）
+    /// </summary>
+    private const int TrimLogLines = 100;
+
     public MainForm()
     {
         InitializeComponent();
@@ -81,6 +91,23 @@ public partial class MainForm : Form
         richTextBoxLog.Clear();
     }
 
+    /// <summary>
+    /// 裁剪最早的日志，仅保留最近 MaxLogLines 行。
+    /// 通过字符范围删除，保留剩余日志的颜色格式
+    /// </summary>
+    private void TrimLogs()
+    {
+        var lineCount = richTextBoxLog.Lines.Length;
+        if (lineCount <= MaxLogLines + TrimLogLines) return;
+
+        var removeEnd = richTextBoxLog.GetFirstCharIndexFromLine(TrimLogLines);
+        if (removeEnd <= 0) return;
+
+        richTextBoxLog.SelectionStart = 0;
+        richTextBoxLog.SelectionLength = removeEnd;
+        richTextBoxLog.SelectedText = string.Empty;
+    }
+
     private void OnLogReceived(string message, Color color)
     {
         if (richTextBoxLog.InvokeRequired)
@@ -88,6 +115,8 @@ public partial class MainForm : Form
             richTextBoxLog.BeginInvoke(new Action<string, Color>(OnLogReceived), message, color);
             return;
         }
+
+        TrimLogs();
 
         richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
         richTextBoxLog.SelectionLength = 0;
