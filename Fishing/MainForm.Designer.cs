@@ -42,6 +42,7 @@ partial class MainForm
         label5 = new Label();
         chkboxUseBait = new CheckBox();
         btnApply = new Button();
+        btnClearLog = new Button();
         txbBobberpoints = new TextBox();
         label3 = new Label();
         txbDistance = new TextBox();
@@ -86,6 +87,7 @@ partial class MainForm
         groupbox1.Controls.Add(label5);
         groupbox1.Controls.Add(chkboxUseBait);
         groupbox1.Controls.Add(btnApply);
+        groupbox1.Controls.Add(btnClearLog);
         groupbox1.Controls.Add(txbBobberpoints);
         groupbox1.Controls.Add(label3);
         groupbox1.Controls.Add(txbDistance);
@@ -178,6 +180,16 @@ partial class MainForm
         btnApply.Text = "应用";
         btnApply.UseVisualStyleBackColor = true;
         btnApply.Click += btnApply_Click;
+        //
+        // btnClearLog
+        //
+        btnClearLog.Location = new Point(1000, 110);
+        btnClearLog.Name = "btnClearLog";
+        btnClearLog.Size = new Size(112, 34);
+        btnClearLog.TabIndex = 16;
+        btnClearLog.Text = "清空日志";
+        btnClearLog.UseVisualStyleBackColor = true;
+        btnClearLog.Click += btnClearLog_Click;
         //
         // txbBobberpoints
         //
@@ -279,6 +291,7 @@ partial class MainForm
     private TextBox txbBobberpoints;
     private Label label3;
     private Button btnApply;
+    private Button btnClearLog;
     private CheckBox chkboxUseBait;
     private TextBox txbBaitKey;
     private Label label5;

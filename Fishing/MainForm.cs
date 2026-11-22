@@ -74,6 +74,11 @@ public partial class MainForm : Form
         MessageBox.Show("配置已保存");
     }
 
+    private void btnClearLog_Click(object sender, EventArgs e)
+    {
+        richTextBoxLog.Clear();
+    }
+
     private void OnLogReceived(string message, Color color)
     {
         if (richTextBoxLog.InvokeRequired)
