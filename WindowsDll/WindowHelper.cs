@@ -22,6 +22,10 @@ public class WindowHelper
     /// <returns></returns>
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
     
     
     /// <summary>
@@ -70,6 +74,17 @@ public class WindowHelper
         return null;
     }
     
+    /// <summary>
+    /// 获取窗口句柄的类名
+    /// </summary>
+    /// <param name="hWnd"></param>
+    /// <returns></returns>
+    public static string GetWindowClassName(IntPtr hWnd)
+    {
+        var builder = new StringBuilder(256);
+        return GetClassName(hWnd, builder, builder.Capacity) > 0 ? builder.ToString() : string.Empty;
+    }
+
     /// <summary>
     /// 获取窗口句柄的进程ID
     /// </summary>

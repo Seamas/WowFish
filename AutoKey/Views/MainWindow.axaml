@@ -31,6 +31,8 @@
                         <TextBox Text="{Binding RepeatCount}" Width="100"/>
                     </StackPanel>
                 </WrapPanel>
+                <CheckBox Content="模拟激活（游戏在后台不响应按键时勾选）"
+                          IsChecked="{Binding SimulateActivation}"/>
                 <TextBlock TextWrapping="Wrap" Foreground="Gray"
                            Text="说明：先切换到游戏窗口，按 F11 开始；程序会记录当前窗口句柄，之后通过窗口消息发送按键。目标窗口可以被其他窗口遮挡，但不可最小化。按 F12 可随时停止，执行完设定的次数后会自动停止。"/>
             </StackPanel>

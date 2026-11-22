@@ -35,6 +35,11 @@ public class AutoKeyConfig
     /// </summary>
     public int RepeatCount { get; set; } = 10;
 
+    /// <summary>
+    /// 发送按键前先投递激活消息，用于部分游戏在非激活状态下忽略按键的情况
+    /// </summary>
+    public bool SimulateActivation { get; set; } = true;
+
     private static AutoKeyConfig Load()
     {
         try

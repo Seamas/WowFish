@@ -25,6 +25,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private int _repeatCount = 10;
 
     [ObservableProperty]
+    private bool _simulateActivation = true;
+
+    [ObservableProperty]
     private bool _isRunning;
 
     public ObservableCollection<string> Logs { get; } = new();
@@ -34,6 +37,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _key = _config.Key;
         _intervalMilliseconds = _config.IntervalMilliseconds;
         _repeatCount = _config.RepeatCount;
+        _simulateActivation = _config.SimulateActivation;
         LogHelper.LogReceived += OnLogReceived;
     }
 
@@ -64,6 +68,12 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnRepeatCountChanged(int value)
     {
         _config.RepeatCount = value;
+        _config.Save();
+    }
+
+    partial void OnSimulateActivationChanged(bool value)
+    {
+        _config.SimulateActivation = value;
         _config.Save();
     }
 
