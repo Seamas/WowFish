@@ -46,6 +46,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _fillKey = "1";
 
     [ObservableProperty]
+    private string _interactKey = "F";
+
+    [ObservableProperty]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -67,6 +70,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _baitDurationMinutes = _config.BaitDurationMinutes;
         _useFillKey = _config.UseFillKey;
         _fillKey = _config.FillKey;
+        _interactKey = _config.InteractKey;
 
         _fishScript.VideoFrameReady += OnVideoFrameReady;
         LogHelper.LogReceived += OnLogReceived;
@@ -149,6 +153,12 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnFillKeyChanged(string value)
     {
         _config.FillKey = value;
+        _config.Save();
+    }
+
+    partial void OnInteractKeyChanged(string value)
+    {
+        _config.InteractKey = value;
         _config.Save();
     }
 

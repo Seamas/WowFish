@@ -46,9 +46,13 @@
                 </WrapPanel>
                 <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <CheckBox Content="使用填充键" IsChecked="{Binding UseFillKey}" Margin="0,0,20,0"/>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,20,0">
                         <TextBlock Text="填充按键" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding FillKey}" Width="80" Watermark="如 1、F4、B"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="交互键(收竿)" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding InteractKey}" Width="80" Watermark="如 F"/>
                     </StackPanel>
                 </WrapPanel>
             </StackPanel>

@@ -45,4 +45,7 @@ public class User32
 
     [DllImport("user32.dll")]
     public static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
 }

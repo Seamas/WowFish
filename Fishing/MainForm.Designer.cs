@@ -35,6 +35,8 @@ partial class MainForm
         groupbox1 = new GroupBox();
         txbFillKey = new TextBox();
         label7 = new Label();
+        txbInteractKey = new TextBox();
+        label8 = new Label();
         chkboxUseFillKey = new CheckBox();
         txbBaitDuration = new TextBox();
         label6 = new Label();
@@ -81,6 +83,8 @@ partial class MainForm
         groupbox1.Controls.Add(txbFillKey);
         groupbox1.Controls.Add(label7);
         groupbox1.Controls.Add(chkboxUseFillKey);
+        groupbox1.Controls.Add(txbInteractKey);
+        groupbox1.Controls.Add(label8);
         groupbox1.Controls.Add(txbBaitDuration);
         groupbox1.Controls.Add(label6);
         groupbox1.Controls.Add(txbBaitKey);
@@ -118,6 +122,22 @@ partial class MainForm
         label7.Size = new Size(82, 24);
         label7.TabIndex = 14;
         label7.Text = "填充按键";
+        //
+        // txbInteractKey
+        //
+        txbInteractKey.Location = new Point(720, 155);
+        txbInteractKey.Name = "txbInteractKey";
+        txbInteractKey.Size = new Size(120, 30);
+        txbInteractKey.TabIndex = 17;
+        //
+        // label8
+        //
+        label8.AutoSize = true;
+        label8.Location = new Point(580, 158);
+        label8.Name = "label8";
+        label8.Size = new Size(130, 24);
+        label8.TabIndex = 18;
+        label8.Text = "交互键(收竿)";
         //
         // chkboxUseFillKey
         //
@@ -300,5 +320,7 @@ partial class MainForm
     private CheckBox chkboxUseFillKey;
     private TextBox txbFillKey;
     private Label label7;
+    private TextBox txbInteractKey;
+    private Label label8;
     private RichTextBox richTextBoxLog;
 }

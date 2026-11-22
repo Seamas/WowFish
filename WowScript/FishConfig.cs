@@ -50,6 +50,11 @@ public class FishConfig
     /// </summary>
     public string FillKey { get; set; } = "1";
 
+    /// <summary>
+    /// 收竿时按下的游戏内交互键，用于直接与鱼漂互动并拾取，无需鼠标点击
+    /// </summary>
+    public string InteractKey { get; set; } = "F";
+
     private static FishConfig Load()
     {
         try

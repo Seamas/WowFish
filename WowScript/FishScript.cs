@@ -88,7 +88,7 @@ public class FishScript : IAutoScript
                 if (await DetectBobberBite(rect, lastPos, utc))
                 {
                     // 6. 收竿
-                    await ReelIn(lastPos, rect);
+                    await ReelIn();
                 }
                 else
                 {
@@ -455,27 +455,30 @@ public class FishScript : IAutoScript
     }
 
     /// <summary>
-    /// 收杆操作
+    /// 收杆操作：直接按下游戏内设置的交互键与鱼漂互动拾取，
+    /// 无需计算/移动鼠标位置，也避免右键误触发攻击
     /// </summary>
-    /// <param name="position"></param>
-    /// <param name="rect"></param>
-    /// <param name="hWndInfo"></param>
-    private async Task ReelIn((int, int, int) position, RECT rect)
+    private async Task ReelIn()
     {
-        // 由于有DPI缩放，需要计算出鼠标点击位置
-        var x = (int)((rect.Left + position.Item1) / _hwndInfo!.Scale);
-        var y = (int)((rect.Top + position.Item2) / _hwndInfo.Scale);
+        var interactKey = FishConfig.Instance.InteractKey;
+        var keyCode = ParseKeyCode(interactKey);
+        if (keyCode == 0)
+        {
+            LogHelper.Info($"交互键配置无效: {interactKey}", Color.Red);
+            return;
+        }
 
-        LogHelper.Info($"点击位置: {x}, {y} (原始位置: {position.Item1}, {position.Item2})");
+        // 键盘输入发送到前台窗口，先确保游戏窗口处于前台
+        User32.SetForegroundWindow(_hwndInfo!.HWnd);
+        await Task.Delay(100);
 
-        // 设置鼠标位置
-        User32.SetCursorPos(x, y);
-        await Task.Delay(100); // 等待鼠标移动
+        LogHelper.Info($"收竿: 按下交互键 {interactKey}");
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
+        await Task.Delay(100);
+        User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
 
-        // 模拟鼠标左键点击
-        User32.mouse_event(InputEventConstant.MouseRightDown, 0, 0, 0, 0);
-        await Task.Delay(200); // 等待点击效果
-        User32.mouse_event(InputEventConstant.MouseRightUp, 0, 0, 0, 0);
+        // 等待拾取完成
+        await Task.Delay(200);
     }
 
 
