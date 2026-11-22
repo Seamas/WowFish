@@ -35,11 +35,6 @@ public class FishScript : IAutoScript
 
     public bool IsRunning => _isRunning;
 
-
-    public object ScriptData => new object();
-
-    private const double maxStdDev = 200.0;
-
     /// <summary>
     /// 视频帧就绪事件，参数为 PNG 图像字节数组与鱼漂中心点信息
     /// </summary>
@@ -295,7 +290,7 @@ public class FishScript : IAutoScript
             }
 
             var distance = Math.Pow(current.X - lastPos.Item1, 2) + Math.Pow(current.Y - lastPos.Item2, 2);
-            LogHelper.Info($"鱼漂运动检测差值 {distance:F2}", Color.Green);
+            LogHelper.Info($"鱼漂运动检测差值 {distance:F2}", distance >= FishConfig.Instance.Distance ? Color.Red : Color.Green);
             if (distance >= FishConfig.Instance.Distance)
             {
                 return true;
@@ -328,9 +323,9 @@ public class FishScript : IAutoScript
         }
 
         // 符合鱼漂颜色的点
-        LogHelper.Info("开始筛选符合颜色的点....");
+        // LogHelper.Info("开始筛选符合颜色的点....");
         var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
-        LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
+        // LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
 
         // 首次全区域搜索时用迭代去除离群点；后续小范围搜索直接使用筛选出的点
         var bobberPoints = !nearCenter.HasValue && bobberColoredPoints.Count > 0
@@ -478,12 +473,9 @@ public class FishScript : IAutoScript
         await Task.Delay(100); // 等待鼠标移动
 
         // 模拟鼠标左键点击
-        User32.mouse_event(InputEventConstant.MouseLeftDown, 0, 0, 0, 0);
+        User32.mouse_event(InputEventConstant.MouseRightDown, 0, 0, 0, 0);
         await Task.Delay(200); // 等待点击效果
-        User32.mouse_event(InputEventConstant.MouseLeftUp, 0, 0, 0, 0);
-
-        // 等待200ms，确保点击效果生效
-        await Task.Delay(100);
+        User32.mouse_event(InputEventConstant.MouseRightUp, 0, 0, 0, 0);
     }
 
 

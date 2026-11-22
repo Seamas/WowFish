@@ -11,5 +11,4 @@ public interface IAutoScript
     
     public bool IsRunning { get; }
 
-    public object ScriptData { get; }
 }
