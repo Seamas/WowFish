@@ -33,6 +33,9 @@ partial class MainForm
     {
         splitContainer1 = new SplitContainer();
         groupbox1 = new GroupBox();
+        txbFillKey = new TextBox();
+        label7 = new Label();
+        chkboxUseFillKey = new CheckBox();
         txbBaitDuration = new TextBox();
         label6 = new Label();
         txbBaitKey = new TextBox();
