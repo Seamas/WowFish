@@ -24,6 +24,11 @@ public class FishScript : IAutoScript
     /// </summary>
     private DateTime _lastBaitTime = DateTime.MinValue;
 
+    /// <summary>
+    /// 检测过程中记录到的最大标准差，用于评估鱼漂点的分布范围
+    /// </summary>
+    private double _stdDev;
+
     #endregion
 
     public string Name => "自动钓鱼";
@@ -32,6 +37,8 @@ public class FishScript : IAutoScript
 
 
     public object ScriptData => new object();
+
+    private const double maxStdDev = 200.0;
 
     /// <summary>
     /// 视频帧就绪事件，参数为 PNG 图像字节数组与鱼漂中心点信息
@@ -42,6 +49,7 @@ public class FishScript : IAutoScript
     {
         if (_isRunning) return;
         _isRunning = true;
+        _stdDev = 0;
         LogHelper.Info($"{Name}开始...");
 
         if (!InitHWndInfo())
@@ -115,6 +123,7 @@ public class FishScript : IAutoScript
         // 停止后重置鱼饵计时，下次启动重新上饵
         _lastBaitTime = DateTime.MinValue;
         LogHelper.Info($"{Name}结束!");
+        LogHelper.Info($"标准差最大值={_stdDev:F2}", Color.Purple);
     }
 
 
@@ -278,7 +287,7 @@ public class FishScript : IAutoScript
         // 等待鱼上钩，如果没有停止或者超时，一直继续
         while (_isRunning && DateTime.Now.ToFileTimeUtc() < utc )
         {
-            var current = FindBobberPoint(rect);
+            var current = FindBobberPoint(rect, (lastPos.Item1, lastPos.Item2));
             if (current.Count < FishConfig.Instance.BobberPoints)
             {
                 LogHelper.Info("未检测到鱼漂，可能是鱼漂消失或位置不正确", Color.Red);
@@ -299,30 +308,42 @@ public class FishScript : IAutoScript
         return false;
     }
 
-    private (int X, int Y, int Count) FindBobberPoint(RECT rect)
+    private (int X, int Y, int Count) FindBobberPoint(RECT rect, (int X, int Y)? nearCenter = null, int searchRadius = 100)
     {
         using var screenshot = ScreenCapture.CaptureScreenRegion(rect, _hwndInfo!.Scale);
 
-        // 计算检测区域, 不需要计算整个图像，以加快检测速度
-        var (x, y, width, height) = GetDetectRegion(screenshot.Width, screenshot.Height);
+        int x, y, width, height;
+        if (nearCenter.HasValue)
+        {
+            // 仅在鱼漂初始位置附近的小范围内搜索，减少像素遍历量
+            x = Math.Max(0, nearCenter.Value.X - searchRadius);
+            y = Math.Max(0, nearCenter.Value.Y - searchRadius);
+            width = Math.Min(screenshot.Width - x, searchRadius * 2);
+            height = Math.Min(screenshot.Height - y, searchRadius * 2);
+        }
+        else
+        {
+            // 计算检测区域, 不需要计算整个图像，以加快检测速度
+            (x, y, width, height) = GetDetectRegion(screenshot.Width, screenshot.Height);
+        }
 
         // 符合鱼漂颜色的点
         LogHelper.Info("开始筛选符合颜色的点....");
         var bobberColoredPoints = FilterImage(screenshot, x, y, width, height, FishConfig.Instance.Threshold);
         LogHelper.Info($"符合颜色的点的数量为 {bobberColoredPoints.Count} 个");
 
-        // 经过中心化筛选出的鱼漂点
-        var multipleIteration = bobberColoredPoints.Count > 0
+        // 首次全区域搜索时用迭代去除离群点；后续小范围搜索直接使用筛选出的点
+        var bobberPoints = !nearCenter.HasValue && bobberColoredPoints.Count > 0
             ? MultipleIteration(bobberColoredPoints)
-            : new List<(int, int)>();
+            : bobberColoredPoints;
 
         // 鱼漂中心点
-        var center = multipleIteration.Count > 0
-            ? CenterOfBobber(multipleIteration)
+        var center = bobberPoints.Count > 0
+            ? CenterOfBobber(bobberPoints)
             : (0, 0, 0);
 
         DebugScreenShot(screenshot, bobberColoredPoints, x, width, y, height);
-        PublishVideoFrame(screenshot, bobberColoredPoints, multipleIteration, center, x, y, width, height);
+        PublishVideoFrame(screenshot, bobberColoredPoints, bobberPoints, center, x, y, width, height);
 
         return center;
     }
@@ -452,21 +473,17 @@ public class FishScript : IAutoScript
 
         LogHelper.Info($"点击位置: {x}, {y} (原始位置: {position.Item1}, {position.Item2})");
 
-        // 收竿前把游戏窗口置为前台，否则点击会落在遮挡它的其他窗口上，导致鱼没有捡起来
-        User32.SetForegroundWindow(_hwndInfo.HWnd);
-        await Task.Delay(200);
-
         // 设置鼠标位置
         User32.SetCursorPos(x, y);
         await Task.Delay(100); // 等待鼠标移动
 
         // 模拟鼠标左键点击
         User32.mouse_event(InputEventConstant.MouseLeftDown, 0, 0, 0, 0);
-        await Task.Delay(100); // 等待点击效果
+        await Task.Delay(200); // 等待点击效果
         User32.mouse_event(InputEventConstant.MouseLeftUp, 0, 0, 0, 0);
 
         // 等待200ms，确保点击效果生效
-        await Task.Delay(200);
+        await Task.Delay(100);
     }
 
 
@@ -571,7 +588,11 @@ public class FishScript : IAutoScript
             // 计算标准差
             double stdDev = Math.Sqrt(distance.Average(d => Math.Pow(d - distance.Average(), 2)));
 
-            LogHelper.Info($"第{index}次迭代: 标准差={stdDev:F2}", Color.Purple);
+            // 记录最大标准差，停止时输出
+            if (stdDev > _stdDev)
+            {
+                _stdDev = stdDev;
+            }
 
             // 过滤距离过大的点
             currentPoints = currentPoints
