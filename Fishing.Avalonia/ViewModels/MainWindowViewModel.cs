@@ -86,7 +86,7 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-    private void OnLogReceived(string message)
+    private void OnLogReceived(string message, System.Drawing.Color color)
     {
         Dispatcher.UIThread.Post(() =>
         {

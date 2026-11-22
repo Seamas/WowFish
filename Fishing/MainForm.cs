@@ -74,15 +74,19 @@ public partial class MainForm : Form
         MessageBox.Show("配置已保存");
     }
 
-    private void OnLogReceived(string message)
+    private void OnLogReceived(string message, Color color)
     {
         if (richTextBoxLog.InvokeRequired)
         {
-            richTextBoxLog.BeginInvoke(new Action<string>(OnLogReceived), message);
+            richTextBoxLog.BeginInvoke(new Action<string, Color>(OnLogReceived), message, color);
             return;
         }
 
+        richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
+        richTextBoxLog.SelectionLength = 0;
+        richTextBoxLog.SelectionColor = color;
         richTextBoxLog.AppendText(message + Environment.NewLine);
+        richTextBoxLog.SelectionColor = richTextBoxLog.ForeColor;
         richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
         richTextBoxLog.ScrollToCaret();
     }

@@ -103,7 +103,7 @@ public class FishScript : IAutoScript
         }
         catch (Exception ex)
         {
-            LogHelper.Info($"发生错误: {ex.Message}");
+            LogHelper.Info($"发生错误: {ex.Message}", Color.Red);
             await Task.Delay(5000);
         }
     }
@@ -244,7 +244,7 @@ public class FishScript : IAutoScript
         User32.keybd_event((byte)FishingKey, 0, InputEventConstant.KeyEventKeyUp, 0);
 
         // 等待动画结束，期间持续刷新预览画面
-        var end = DateTime.Now.AddMilliseconds(2000);
+        var end = DateTime.Now.AddMilliseconds(1000);
         while (_isRunning && DateTime.Now < end)
         {
             PublishPreviewFrame(rect);

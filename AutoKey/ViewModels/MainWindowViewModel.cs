@@ -41,7 +41,7 @@ public partial class MainWindowViewModel : ViewModelBase
         LogHelper.LogReceived += OnLogReceived;
     }
 
-    private void OnLogReceived(string message)
+    private void OnLogReceived(string message, System.Drawing.Color color)
     {
         Dispatcher.UIThread.Post(() =>
         {
