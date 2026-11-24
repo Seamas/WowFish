@@ -469,16 +469,16 @@ public class FishScript : IAutoScript
         }
 
         // 键盘输入发送到前台窗口，先确保游戏窗口处于前台
-        User32.SetForegroundWindow(_hwndInfo!.HWnd);
-        await Task.Delay(100);
+        // User32.SetForegroundWindow(_hwndInfo!.HWnd);
+        // await Task.Delay(100);
 
         LogHelper.Info($"收竿: 按下交互键 {interactKey}");
         User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyDown, 0);
-        await Task.Delay(100);
+        await Task.Delay(200);
         User32.keybd_event(keyCode, 0, InputEventConstant.KeyEventKeyUp, 0);
 
         // 等待拾取完成
-        await Task.Delay(200);
+        await Task.Delay(1000);
     }
 
 
